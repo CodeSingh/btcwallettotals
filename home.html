@@ -1,0 +1,300 @@
+<html color-mode="user">
+<head>
+<title>BTC Wallet Totals</title>
+    <link rel="stylesheet" href="css/bulma.css"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="has-navbar-fixed-top">
+    <div class="container">
+        <nav class="navbar is-fixed-top is-warning">
+            <span class="navbar-item title">
+                BTC Wallet Totals
+            </span>    
+        </nav>
+        <section id="section-wallets" class="section">
+
+
+            <nav class="level">
+                <div class="level-item has-text-centered">
+                  <div>
+                    <p class="heading">BTC</p>
+                    <p class="title" id="btctotal"></p>
+                  </div>
+                </div>
+                <div class="level-item has-text-centered">
+                  <div>
+                    <div class="heading">
+                        <div class="select is-primary">
+                            <select id="currencies" class="currencies">
+                            </select>
+                        </div>
+                    </div>
+                    <p class="title" id="currencytotal"></p>
+                  </div>
+                </div>
+                <p class="level-item">                
+
+                </p>
+            </nav>
+
+            <div id="wallets" class="columns is-multiline">
+
+            </div>
+        </section>
+        <nav class="navbar is-fixed-bottom is-warning" role="navigation">
+            <div class="navbar-brand">
+                <div class="navbar-item">
+                    <a id="save" class="button"><span class="icon-text">
+                        <span>Save</span>
+                        </span>
+                    </a>
+                </div>  
+                <div class="level-item">
+                    <input value="+" type="button" id="add" class="button"/>
+                </div>
+                <div class="level-item">
+                    <a id="openratesmodal" class="js-modal-trigger link" data-target="modal-rates">
+                        Rates
+                    </a>
+                </div>
+            </div>
+          </nav>
+    </div>
+    <div class="modal" id="modal-rates">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+            <p class="modal-card-title">Exchange Rates</p>
+            <button class="delete" aria-label="close"></button>
+            </header>
+            <section class="modal-card-body">
+            <p id="exchangerates">
+            </p>
+            </section>
+            <footer class="modal-card-foot">
+            </footer>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+
+    const DEFAULT_CURRENCY = "usd";
+
+    var exchangeRates = null;
+    var markupExchangeRates = '';
+    var localStorageKey = 'userData';
+
+    const selectCurrencies = document.querySelector('#currencies');
+    const divWalletContainer = document.querySelector("#wallets");
+
+    var spanBTCTotal = document.querySelector("#btctotal");
+    var spanCurrencyTotal = document.querySelector("#currencytotal");
+
+    markupWalletSingle = `
+    <div id="wallet1" class="wallet card column is-one-quarter">
+        <div class="card-content">
+            <div class="content">
+                <label class="lblvalue label" for="value1">Wallet 1: </label>
+                <input type="number" id="value1" class="value input"/>
+                <label class="lblvalueconverted label" for="valueconverted1">Converted: </label>
+                <input type="number" id="valueconverted1" class="valueconverted input" readonly="readonly" ></input>
+                <label class="lbltype label" for="type1">Type: </label>
+                <div class="select is-primary">
+                    <select id="type1" class="type">
+                        <option value="hardwarewallet">Hardware Wallet</option>
+                        <option value="exchangewallet">Exchange Wallet</option>
+                        <option value="otherwallet">Other Wallet</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+    </div>`;
+
+    function addWallet(pVal, pTyp){
+        var divWallet = document.querySelectorAll(".wallet");
+
+        if(divWallet.length == 0 )
+        {
+            divWalletContainer.innerHTML = markupWalletSingle;
+            divWalletContainer.querySelector('.value').value = pVal;
+            divWalletContainer.querySelector('.type').value = pTyp;
+
+            convertBTCToCurrency(divWalletContainer.querySelector('.value'));
+
+        }
+        else{
+            const currentId = divWallet.length - 1;
+            const newId = divWallet.length + 1;
+
+            var newWallet = divWallet[currentId].cloneNode(true);
+            divWalletContainer.appendChild(newWallet);
+
+            newWallet.id = "wallet" + newId;
+            newWallet.querySelector(".lblvalue").htmlFor = "value" + newId
+            newWallet.querySelector(".lblvalue").innerHTML = "Wallet " + newId + ":"
+            newWallet.querySelector(".lblvalueconverted").htmlFor = "valueconverted" + newId
+            var valueconverted = newWallet.querySelector(".valueconverted");
+            valueconverted.value = '';
+            valueconverted.id = "valueconverted" + newId
+            newWallet.querySelector(".lbltype").htmlFor = "type" + newId
+            var val = newWallet.querySelector(".value");
+            val.value = pVal;
+            val.id = "value" + newId;
+
+            var type = newWallet.querySelector(".type")
+            type.id = "type" + newId;
+            type.value = pTyp;
+
+            convertBTCToCurrency(val);
+        }
+    }
+
+    function loadExchangeRates(){
+        const gist_username = "CodeSingh";
+        const gist_id = "b937960a1307eb21110bc7417a1d9bf2";
+        const gist_filename = "rate.json"
+        var gist_url = `https://gist.githubusercontent.com/${gist_username}/${gist_id}/raw/${gist_filename}`;
+
+        fetch(gist_url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            exchangeRates = data;
+            data.forEach(element => {
+                if(element.error == ""){
+                    markupExchangeRates += `<div id="er-${element.currency}"><span>1 ${element.coin} = ${element.rate} ${element.currency} (updated: ${element.timestamp})</span></div>`;
+                    document.querySelector("#currencies").innerHTML += `<option value="${element.currency}">${element.currency.toUpperCase()}</option>`;
+                    document.querySelector("#exchangerates").innerHTML = markupExchangeRates;
+                }
+            }); 
+            retrieveUserData();        
+        })
+        .catch(error => {
+            markupExchangeRates += "<div>Error!</div>"
+            document.querySelector("#exchangerates").innerHTML = markupExchangeRates;
+        });
+    }
+
+    function retrieveUserData(){
+        const userData = localStorage.getItem(localStorageKey);
+        const userDataJSON = JSON.parse(userData);
+        if(userDataJSON == null){
+            selectCurrencies.value = DEFAULT_CURRENCY;
+            divWallet.innerHTML = markupWalletSingle;
+        }
+        else{
+            if(userDataJSON.currency != null ){
+                document.getElementById('currencies').value = userDataJSON.currency;
+                userDataJSON.wallets.forEach(element => {
+                    addWallet(element.value, element.type);
+
+                });
+            }
+        }
+    }
+
+    function saveWalletData(){
+
+        const wallets = document.querySelectorAll(".wallet");
+
+        var walletData = {currency : selectCurrencies.value, wallets: []};
+        wallets.forEach(element => {
+            var val = element.querySelector(".value").value;
+            var typ = element.querySelector(".type").value;
+            if(val != ""){
+                var wallet = {value: val, type: typ};
+                walletData.wallets.push(wallet);
+            }
+        });
+
+        const strWalletData = JSON.stringify(walletData)
+        localStorage.setItem(localStorageKey, strWalletData);
+    }
+
+    document.getElementById('wallets').addEventListener('change',function(e){
+
+        if (e.target.classList.contains('value')) {
+            convertBTCToCurrency(e.target);
+        }
+    });
+
+    function updateTotals(){
+        var btcTotal = 0;
+        var currencyTotal = 0;
+        document.querySelectorAll(".wallet").forEach(element => {
+            btcTotal += +element.querySelector('.value').value;
+            currencyTotal += +element.querySelector('.valueconverted').value;               
+        });
+        spanBTCTotal.innerHTML = btcTotal;
+        spanCurrencyTotal.innerHTML = currencyTotal.toFixed(2);
+    }
+
+    function convertBTCToCurrency(target){
+        var exRate = exchangeRates.filter(f => f.currency == selectCurrencies.value);
+        if(exRate.length > 0){
+            target.closest('div').querySelector('.valueconverted').value = (target.value * exRate[0].rate).toFixed(2);
+            updateTotals();
+        }
+        else{
+            target.closest('div').querySelector('.valueconverted').value = "Error: Couldn't retrieve ex rates";
+        }
+    }
+
+    // Functions to open and close a modal
+    function openModal(el) {
+        el.classList.add('is-active');
+    }
+
+    function closeModal(el) {
+        el.classList.remove('is-active');
+    }
+
+    function closeAllModals() {
+        (document.querySelectorAll('.modal') || []).forEach(($modal) => {
+        closeModal($modal);
+        });
+    }
+
+    // Add a keyboard event to close all modals
+    document.addEventListener('keydown', (event) => {
+        if(event.key === "Escape") {
+            closeAllModals();
+        }
+    });
+
+    document.querySelector('#modal-rates > div.modal-card > header > button.delete').onclick = function(){
+        closeAllModals();
+    }
+
+    document.getElementById('add').onclick = function(){
+        addWallet(val='', typ='');
+    }
+
+    document.getElementById('openratesmodal').onclick = function(e){
+
+        var modalName = e.target.getAttribute('data-target');
+        var modalEl = document.getElementById(modalName);
+        openModal(modalEl);
+    }
+
+    document.getElementById('currencies').onchange = function(){
+        document.querySelectorAll('.wallet').forEach(element => {
+            convertBTCToCurrency(element.querySelector('.value'));
+        });
+    }
+
+    document.getElementById('save').onclick = function(){
+        saveWalletData();
+    }
+
+    loadExchangeRates();
+
+
+
+</script>
+</html>
