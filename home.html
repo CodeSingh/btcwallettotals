@@ -187,7 +187,7 @@
             retrieveUserData();        
         })
         .catch(error => {
-            markupExchangeRates += "<div>Error!</div>"
+            markupExchangeRates += "<div>"+ error+"</div>"
             document.querySelector("#exchangerates").innerHTML = markupExchangeRates;
         });
     }
@@ -197,7 +197,7 @@
         const userDataJSON = JSON.parse(userData);
         if(userDataJSON == null){
             selectCurrencies.value = DEFAULT_CURRENCY;
-            divWallet.innerHTML = markupWalletSingle;
+            divWalletContainer.innerHTML = markupWalletSingle;
         }
         else{
             if(userDataJSON.currency != null ){
