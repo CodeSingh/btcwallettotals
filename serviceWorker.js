@@ -1,4 +1,4 @@
-const staticDevCoffee = "btcwallettotals-v1.1"
+const staticDevCoffee = "btcwallettotals-v1.2"
 const assets = [
   "/btcwallettotals/",
   "/btcwallettotals/home.html",
