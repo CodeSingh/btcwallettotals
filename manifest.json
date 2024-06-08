@@ -2,7 +2,7 @@
     "name": "BTC Wallet Totals",
     "short_name": "BTCWalletTotals",
     "scope": "/btcwallettotals/",
-    "start_url": "/btcwallettotals/home.html",
+    "start_url": "/btcwallettotals/",
     "display": "standalone",
     "background_color": "#ffb70f",
     "theme_color": "#ffb70f",
