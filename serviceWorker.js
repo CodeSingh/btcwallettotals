@@ -2,7 +2,8 @@ const staticDevCoffee = "btcwallettotals-v1"
 const assets = [
   "/btcwallettotals/",
   "/btcwallettotals/home.html",
-  "/btcwallettotals/css/bulma.css"
+  "/btcwallettotals/css/bulma.css",
+  "/btcwallettotals/img/bwt.png"
 ]
 
 self.addEventListener("install", installEvent => {
